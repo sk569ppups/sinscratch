@@ -21,6 +21,12 @@
       text-shadow: 2px 2px 4px #999;
     }
 
+    @media screen and (max-width: 480px) {
+      .main-title {
+        font-size: 1.5em;
+      }
+    }
+
     #message {
       font-size: 1.2em;
       margin-bottom: 20px;
@@ -106,7 +112,7 @@
     let isDrawing = false;
     let revealed = false;
 
-    // 📦 一日一回制限（開発中はOFF）
+    // ✅ 一日一回制限（開発中はOFF）
     // const today = new Date().toDateString();
     // const savedDate = localStorage.getItem('scratchDate');
     // if (savedDate === today) {
@@ -118,9 +124,9 @@
     // localStorage.setItem('scratchDate', today);
     hiddenImg.src = result;
 
-    // 画像ファイル名によって当たり or はずれを判定
-    function isWin(imageName) {
-      return imageName !== 'hazure.png';
+    function isWin(imagePath) {
+      const filename = imagePath.split('/').pop();
+      return filename !== 'hazure.png';
     }
 
     choices.forEach(choice => {
@@ -128,7 +134,7 @@
         document.getElementById('choices').style.display = 'none';
         message.textContent = '削ってみてね';
 
-        // 読み込みラグ回避のため、ちょっと待ってから表示
+        // 100msディレイでラグ対策
         setTimeout(() => {
           scratchArea.style.display = 'block';
           const coverImg = new Image();
@@ -136,7 +142,7 @@
           coverImg.onload = () => {
             ctx.drawImage(coverImg, 0, 0, canvas.width, canvas.height);
           };
-        }, 100); // 100msディレイ
+        }, 100);
       });
     });
 
@@ -178,7 +184,7 @@
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         hiddenImg.classList.add('reveal-effect');
 
-        // メッセージ表示
+        // ✅ 正しい文言切り替え
         if (isWin(hiddenImg.src)) {
           resultMessage.textContent = 'この画像をスタッフまで見せてね';
         } else {
