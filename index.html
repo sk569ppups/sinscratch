@@ -12,25 +12,33 @@
       margin: 0;
       padding: 20px;
     }
-    h1 {
-      font-size: 1.8em;
-      margin-bottom: 20px;
+
+    .main-title {
+      font-size: 2em;
+      font-weight: bold;
+      margin-bottom: 10px;
+      color: #d2691e;
+      text-shadow: 2px 2px 4px #999;
     }
+
     #message {
       font-size: 1.2em;
       margin-bottom: 20px;
     }
+
     .choice-container {
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 20px;
     }
+
     .choice-img {
       width: 200px;
       cursor: pointer;
       border-radius: 10px;
     }
+
     #scratch-area {
       display: none;
       position: relative;
@@ -38,37 +46,44 @@
       height: 400px;
       margin: 0 auto;
     }
+
     #hidden-img {
       width: 100%;
       height: 100%;
       border-radius: 12px;
       object-fit: cover;
     }
+
     #scratch-canvas {
       position: absolute;
       top: 0;
       left: 0;
       border-radius: 12px;
     }
-    #final-message {
-      margin-top: 15px;
-      font-size: 1.1em;
-      color: #c00;
-      font-weight: bold;
-    }
+
     .reveal-effect {
       animation: pop 0.6s ease-out;
     }
+
     @keyframes pop {
       0% { transform: scale(1); filter: brightness(1); }
       50% { transform: scale(1.1); filter: brightness(1.5); }
       100% { transform: scale(1); filter: brightness(1); }
     }
+
+    #result-message {
+      margin-top: 15px;
+      font-size: 1.2em;
+      font-weight: bold;
+      color: #333;
+    }
   </style>
 </head>
 <body>
-  <h1>削って楽しくスクラッチ</h1>
+
+  <h1 class="main-title">🎉 削って楽しくスクラッチ 🎉</h1>
   <div id="message">この中から1つ選んでね</div>
+
   <div id="choices" class="choice-container">
     <img src="ginhatenatop.png" class="choice-img">
     <img src="ginhatenatop.png" class="choice-img">
@@ -77,7 +92,7 @@
   <div id="scratch-area">
     <img id="hidden-img" src="" alt="当たり画像">
     <canvas id="scratch-canvas" width="300" height="400"></canvas>
-    <div id="final-message"></div>
+    <div id="result-message"></div>
   </div>
 
   <script>
@@ -85,42 +100,43 @@
     const choices = document.querySelectorAll('.choice-img');
     const scratchArea = document.getElementById('scratch-area');
     const hiddenImg = document.getElementById('hidden-img');
+    const resultMessage = document.getElementById('result-message');
     const canvas = document.getElementById('scratch-canvas');
     const ctx = canvas.getContext('2d');
-    const finalMsg = document.getElementById('final-message');
     let isDrawing = false;
     let revealed = false;
 
-    const today = new Date().toDateString();
-    const savedDate = localStorage.getItem('scratchDate');
-    if (savedDate === today) {
-      document.body.innerHTML = '<h1>削って楽しくスクラッチ</h1><p>今日はすでにやったよ、また明日遊んでね</p>';
+    // 📦 一日一回制限（開発中はOFF）
+    // const today = new Date().toDateString();
+    // const savedDate = localStorage.getItem('scratchDate');
+    // if (savedDate === today) {
+    //   document.body.innerHTML = '<h1 class="main-title">🎉 削って楽しくスクラッチ 🎉</h1><p>今日はすでにやったよ、また明日遊んでね</p>';
+    // }
+
+    const result = getScratchResult();
+    // localStorage.setItem('scratchResult', result);
+    // localStorage.setItem('scratchDate', today);
+    hiddenImg.src = result;
+
+    // 画像ファイル名によって当たり or はずれを判定
+    function isWin(imageName) {
+      return imageName !== 'hazure.png';
     }
 
-    // 結果決定・保存
-    const result = getScratchResult();
-    localStorage.setItem('scratchResult', result);
-    localStorage.setItem('scratchDate', today);
-    const resultImg = new Image();
-    resultImg.src = result;
-    resultImg.onload = () => {} // 事前読み込み
-
-    // 画像選択時
     choices.forEach(choice => {
       choice.addEventListener('click', () => {
-        message.textContent = '';
         document.getElementById('choices').style.display = 'none';
-        hiddenImg.src = result;
+        message.textContent = '削ってみてね';
+
+        // 読み込みラグ回避のため、ちょっと待ってから表示
         setTimeout(() => {
           scratchArea.style.display = 'block';
-          message.textContent = '削ってみてね';
           const coverImg = new Image();
           coverImg.src = 'ginhatenatop.png';
           coverImg.onload = () => {
-            ctx.globalCompositeOperation = 'source-over';
             ctx.drawImage(coverImg, 0, 0, canvas.width, canvas.height);
           };
-        }, 100); // 遅延で先表示防止
+        }, 100); // 100msディレイ
       });
     });
 
@@ -161,10 +177,17 @@
         revealed = true;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         hiddenImg.classList.add('reveal-effect');
-        finalMsg.textContent = 'この画像をスタッフまで見せてね';
+
+        // メッセージ表示
+        if (isWin(hiddenImg.src)) {
+          resultMessage.textContent = 'この画像をスタッフまで見せてね';
+        } else {
+          resultMessage.textContent = '残念！また明日チャレンジしてみて';
+        }
       }
     }
 
+    // イベント登録
     canvas.addEventListener('mousedown', (e) => {
       isDrawing = true;
       scratch(...Object.values(getPosition(e)));
@@ -188,5 +211,6 @@
     }, { passive: false });
     canvas.addEventListener('touchend', () => isDrawing = false);
   </script>
+
 </body>
 </html>
