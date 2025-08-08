@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>削って楽しくスクラッチ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      text-align: center;
+      background: #f0f0f0;
+      font-family: sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      font-size: 1.8em;
+      margin-bottom: 20px;
+    }
+    #message {
+      font-size: 1.2em;
+      margin-bottom: 20px;
+    }
+    .choice-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+    .choice-img {
+      width: 200px;
+      cursor: pointer;
+      border-radius: 10px;
+    }
+    #scratch-area {
+      display: none;
+      position: relative;
+      width: 300px;
+      height: 400px;
+      margin: 0 auto;
+    }
+    #hidden-img {
+      width: 100%;
+      height: 100%;
+      border-radius: 12px;
+      object-fit: cover;
+    }
+    #scratch-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      border-radius: 12px;
+    }
+    .reveal-effect {
+      animation: pop 0.6s ease-out;
+    }
+    @keyframes pop {
+      0% { transform: scale(1); filter: brightness(1); }
+      50% { transform: scale(1.1); filter: brightness(1.5); }
+      100% { transform: scale(1); filter: brightness(1); }
+    }
+  </style>
+</head>
+<body>
+  <h1>削って楽しくスクラッチ</h1>
+  <div id="message">この中から1つ選んでね</div>
+  <div id="choices" class="choice-container">
+    <img src="ginhatenatop.png" class="choice-img">
+    <img src="ginhatenatop.png" class="choice-img">
+    <img src="ginhatenatop.png" class="choice-img">
+  </div>
+
+  <div id="scratch-area">
+    <img id="hidden-img" src="" alt="当たり画像">
+    <canvas id="scratch-canvas" width="300" height="400"></canvas>
+  </div>
+
+  <script>
+    const message = document.getElementById('message');
+    const choices = document.querySelectorAll('.choice-img');
+    const scratchArea = document.getElementById('scratch-area');
+    const hiddenImg = document.getElementById('hidden-img');
+    const canvas = document.getElementById('scratch-canvas');
+    const ctx = canvas.getContext('2d');
+    let isDrawing = false;
+    let revealed = false;
+
+    const today = new Date().toDateString();
+    const savedDate = localStorage.getItem('scratchDate');
+    if (savedDate === today) {
+      document.body.innerHTML = '<h1>削って楽しくスクラッチ</h1><p>今日はすでにやったよ、また明日遊んでね</p>';
+    }
+
+    const result = getScratchResult();
+    localStorage.setItem('scratchResult', result);
+    localStorage.setItem('scratchDate', today);
+    hiddenImg.src = result;
+
+    choices.forEach(choice => {
+      choice.addEventListener('click', () => {
+        document.getElementById('choices').style.display = 'none';
+        scratchArea.style.display = 'block';
+        message.textContent = '削ってみてね';
+
+        const coverImg = new Image();
+        coverImg.src = 'ginhatenatop.png';
+        coverImg.onload = () => {
+          ctx.drawImage(coverImg, 0, 0, canvas.width, canvas.height);
+        };
+      });
+    });
+
+    function getScratchResult() {
+      const rand = Math.floor(Math.random() * 100);
+      if (rand < 2) return 'petdrink2.png';
+      else if (rand < 4) return 'petdrink1.png';
+      else if (rand < 7) return 'kandrink.png';
+      else if (rand < 15) return 'okasi.png';
+      else return 'hazure.png';
+    }
+
+    function getPosition(e) {
+      const rect = canvas.getBoundingClientRect();
+      const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+      const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+      return { x, y };
+    }
+
+    function scratch(x, y) {
+      if (revealed) return;
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.beginPath();
+      ctx.arc(x, y, 20, 0, Math.PI * 2, false);
+      ctx.fill();
+      checkReveal();
+    }
+
+    function checkReveal() {
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const pixels = imgData.data;
+      let transparentPixels = 0;
+      for (let i = 3; i < pixels.length; i += 4) {
+        if (pixels[i] === 0) transparentPixels++;
+      }
+      const ratio = transparentPixels / (canvas.width * canvas.height);
+      if (ratio > 0.4 && !revealed) {
+        revealed = true;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        hiddenImg.classList.add('reveal-effect');
+      }
+    }
+
+    canvas.addEventListener('mousedown', (e) => {
+      isDrawing = true;
+      scratch(...Object.values(getPosition(e)));
+    });
+    canvas.addEventListener('mousemove', (e) => {
+      if (!isDrawing) return;
+      scratch(...Object.values(getPosition(e)));
+    });
+    canvas.addEventListener('mouseup', () => isDrawing = false);
+    canvas.addEventListener('mouseleave', () => isDrawing = false);
+
+    canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      isDrawing = true;
+      scratch(...Object.values(getPosition(e)));
+    }, { passive: false });
+    canvas.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      if (!isDrawing) return;
+      scratch(...Object.values(getPosition(e)));
+    }, { passive: false });
+    canvas.addEventListener('touchend', () => isDrawing = false);
+  </script>
+</body>
+</html>
