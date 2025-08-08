@@ -50,6 +50,12 @@
       left: 0;
       border-radius: 12px;
     }
+    #final-message {
+      margin-top: 15px;
+      font-size: 1.1em;
+      color: #c00;
+      font-weight: bold;
+    }
     .reveal-effect {
       animation: pop 0.6s ease-out;
     }
@@ -66,12 +72,12 @@
   <div id="choices" class="choice-container">
     <img src="ginhatenatop.png" class="choice-img">
     <img src="ginhatenatop.png" class="choice-img">
-    <img src="ginhatenatop.png" class="choice-img">
   </div>
 
   <div id="scratch-area">
     <img id="hidden-img" src="" alt="当たり画像">
     <canvas id="scratch-canvas" width="300" height="400"></canvas>
+    <div id="final-message"></div>
   </div>
 
   <script>
@@ -81,6 +87,7 @@
     const hiddenImg = document.getElementById('hidden-img');
     const canvas = document.getElementById('scratch-canvas');
     const ctx = canvas.getContext('2d');
+    const finalMsg = document.getElementById('final-message');
     let isDrawing = false;
     let revealed = false;
 
@@ -90,22 +97,30 @@
       document.body.innerHTML = '<h1>削って楽しくスクラッチ</h1><p>今日はすでにやったよ、また明日遊んでね</p>';
     }
 
+    // 結果決定・保存
     const result = getScratchResult();
     localStorage.setItem('scratchResult', result);
     localStorage.setItem('scratchDate', today);
-    hiddenImg.src = result;
+    const resultImg = new Image();
+    resultImg.src = result;
+    resultImg.onload = () => {} // 事前読み込み
 
+    // 画像選択時
     choices.forEach(choice => {
       choice.addEventListener('click', () => {
+        message.textContent = '';
         document.getElementById('choices').style.display = 'none';
-        scratchArea.style.display = 'block';
-        message.textContent = '削ってみてね';
-
-        const coverImg = new Image();
-        coverImg.src = 'ginhatenatop.png';
-        coverImg.onload = () => {
-          ctx.drawImage(coverImg, 0, 0, canvas.width, canvas.height);
-        };
+        hiddenImg.src = result;
+        setTimeout(() => {
+          scratchArea.style.display = 'block';
+          message.textContent = '削ってみてね';
+          const coverImg = new Image();
+          coverImg.src = 'ginhatenatop.png';
+          coverImg.onload = () => {
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.drawImage(coverImg, 0, 0, canvas.width, canvas.height);
+          };
+        }, 100); // 遅延で先表示防止
       });
     });
 
@@ -142,10 +157,11 @@
         if (pixels[i] === 0) transparentPixels++;
       }
       const ratio = transparentPixels / (canvas.width * canvas.height);
-      if (ratio > 0.4 && !revealed) {
+      if (ratio > 0.3 && !revealed) {
         revealed = true;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         hiddenImg.classList.add('reveal-effect');
+        finalMsg.textContent = 'この画像をスタッフまで見せてね';
       }
     }
 
