@@ -120,14 +120,7 @@
     // }
 
     const result = getScratchResult();
-    // localStorage.setItem('scratchResult', result);
-    // localStorage.setItem('scratchDate', today);
     hiddenImg.src = result;
-
-    function isWin(imagePath) {
-      const filename = imagePath.split('/').pop();
-      return filename !== 'hazure.png';
-    }
 
     choices.forEach(choice => {
       choice.addEventListener('click', () => {
@@ -184,12 +177,8 @@
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         hiddenImg.classList.add('reveal-effect');
 
-        // ✅ 正しい文言切り替え
-        if (isWin(hiddenImg.src)) {
-          resultMessage.textContent = 'この画像をスタッフまで見せてね';
-        } else {
-          resultMessage.textContent = '残念！また明日チャレンジしてみて';
-        }
+        // ✅ テキストは出さずに画像の文言だけを使う
+        resultMessage.textContent = '';
       }
     }
 
