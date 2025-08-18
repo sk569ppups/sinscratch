@@ -76,13 +76,6 @@
       50% { transform: scale(1.1); filter: brightness(1.5); }
       100% { transform: scale(1); filter: brightness(1); }
     }
-
-    #result-message {
-      margin-top: 15px;
-      font-size: 1.2em;
-      font-weight: bold;
-      color: #333;
-    }
   </style>
 </head>
 <body>
@@ -98,7 +91,6 @@
   <div id="scratch-area">
     <img id="hidden-img" src="" alt="当たり画像">
     <canvas id="scratch-canvas" width="300" height="400"></canvas>
-    <div id="result-message"></div>
   </div>
 
   <script>
@@ -106,20 +98,26 @@
     const choices = document.querySelectorAll('.choice-img');
     const scratchArea = document.getElementById('scratch-area');
     const hiddenImg = document.getElementById('hidden-img');
-    const resultMessage = document.getElementById('result-message');
     const canvas = document.getElementById('scratch-canvas');
     const ctx = canvas.getContext('2d');
     let isDrawing = false;
     let revealed = false;
 
-    // ✅ 一日一回制限（開発中はOFF）
-    // const today = new Date().toDateString();
-    // const savedDate = localStorage.getItem('scratchDate');
-    // if (savedDate === today) {
-    //   document.body.innerHTML = '<h1 class="main-title">🎉 削って楽しくスクラッチ 🎉</h1><p>今日はすでにやったよ、また明日遊んでね</p>';
-    // }
+    // ✅ 一日一回制限
+    const today = new Date().toDateString();
+    const savedDate = localStorage.getItem('scratchDate');
 
+    if (savedDate === today) {
+      document.body.innerHTML = `
+        <h1 class="main-title">🎉 削って楽しくスクラッチ 🎉</h1>
+        <p style="font-size:1.2em;">今日はすでにやったよ、また明日遊んでね</p>
+      `;
+    }
+
+    // 結果を決定して保存
     const result = getScratchResult();
+    localStorage.setItem('scratchResult', result);
+    localStorage.setItem('scratchDate', today);
     hiddenImg.src = result;
 
     choices.forEach(choice => {
@@ -127,7 +125,6 @@
         document.getElementById('choices').style.display = 'none';
         message.textContent = '削ってみてね';
 
-        // 100msディレイでラグ対策
         setTimeout(() => {
           scratchArea.style.display = 'block';
           const coverImg = new Image();
@@ -141,11 +138,11 @@
 
     function getScratchResult() {
       const rand = Math.floor(Math.random() * 100);
-      if (rand < 2) return 'petdrink2.png';
-      else if (rand < 4) return 'petdrink1.png';
-      else if (rand < 7) return 'kandrink.png';
-      else if (rand < 15) return 'okasi.png';
-      else return 'hazure.png';
+      if (rand < 2) return 'petdrink2.png';     // 2%
+      else if (rand < 4) return 'petdrink1.png'; // 2%
+      else if (rand < 7) return 'kandrink.png';  // 3%
+      else if (rand < 15) return 'okasi.png';    // 8%
+      else return 'hazure.png';                  // 85%
     }
 
     function getPosition(e) {
@@ -176,13 +173,10 @@
         revealed = true;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         hiddenImg.classList.add('reveal-effect');
-
-        // ✅ テキストは出さずに画像の文言だけを使う
-        resultMessage.textContent = '';
       }
     }
 
-    // イベント登録
+    // PC用
     canvas.addEventListener('mousedown', (e) => {
       isDrawing = true;
       scratch(...Object.values(getPosition(e)));
@@ -194,6 +188,7 @@
     canvas.addEventListener('mouseup', () => isDrawing = false);
     canvas.addEventListener('mouseleave', () => isDrawing = false);
 
+    // スマホ用
     canvas.addEventListener('touchstart', (e) => {
       e.preventDefault();
       isDrawing = true;
