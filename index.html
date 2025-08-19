@@ -1,150 +1,126 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>削って楽しくスクラッチ</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    body {
-      text-align: center;
-      background: #f0f0f0;
-      font-family: sans-serif;
-      margin: 0;
-      padding: 20px;
-    }
-
-    .main-title {
-      font-size: 2em;
-      font-weight: bold;
-      margin-bottom: 10px;
-      color: #d2691e;
-      text-shadow: 2px 2px 4px #999;
-    }
-
-    @media screen and (max-width: 480px) {
-      .main-title {
-        font-size: 1.5em;
-      }
-    }
-
-    #message {
-      font-size: 1.2em;
-      margin-bottom: 20px;
-    }
-
-    .choice-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 20px;
-    }
-
-    .choice-img {
-      width: 200px;
-      cursor: pointer;
-      border-radius: 10px;
-    }
-
-    #scratch-area {
-      display: none;
-      position: relative;
-      width: 300px;
-      height: 400px;
-      margin: 0 auto;
-    }
-
-    #hidden-img {
-      width: 100%;
-      height: 100%;
-      border-radius: 12px;
-      object-fit: cover;
-    }
-
-    #scratch-canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      border-radius: 12px;
-    }
-
-    .reveal-effect {
-      animation: pop 0.6s ease-out;
-    }
-
-    @keyframes pop {
-      0% { transform: scale(1); filter: brightness(1); }
-      50% { transform: scale(1.1); filter: brightness(1.5); }
-      100% { transform: scale(1); filter: brightness(1); }
-    }
+    body { text-align:center; background:#f0f0f0; font-family:sans-serif; margin:0; padding:20px; }
+    .main-title { font-size:2em; font-weight:bold; margin-bottom:10px; color:#d2691e; text-shadow:2px 2px 4px #999; }
+    @media (max-width:480px){ .main-title { font-size:1.5em; } }
+    #message { font-size:1.2em; margin-bottom:20px; }
+    .choice-container { display:flex; flex-direction:column; align-items:center; gap:20px; }
+    .choice-img { width:200px; cursor:pointer; border-radius:10px; }
+    #scratch-area { display:none; position:relative; width:300px; height:400px; margin:0 auto; }
+    #hidden-img { width:100%; height:100%; border-radius:12px; object-fit:cover; }
+    #scratch-canvas { position:absolute; top:0; left:0; border-radius:12px; }
+    .reveal-effect { animation:pop 0.6s ease-out; }
+    @keyframes pop { 0%{transform:scale(1);filter:brightness(1);} 50%{transform:scale(1.1);filter:brightness(1.5);} 100%{transform:scale(1);filter:brightness(1);} }
+    /* テストモード用UI */
+    .test-badge { position:fixed; top:8px; right:8px; background:#ff3366; color:#fff; font-weight:bold; padding:6px 10px; border-radius:6px; box-shadow:0 2px 6px rgba(0,0,0,.2); font-size:.9em; z-index:1000; }
+    .reset-btn { position:fixed; right:10px; bottom:12px; padding:10px 14px; font-size:.95em; border:none; border-radius:8px; background:#444; color:#fff; box-shadow:0 2px 6px rgba(0,0,0,.2); cursor:pointer; z-index:1000; }
+    .reset-btn:active { transform:scale(.98); }
   </style>
 </head>
 <body>
-
   <h1 class="main-title">🎉 削って楽しくスクラッチ 🎉</h1>
   <div id="message">この中から1つ選んでね</div>
 
   <div id="choices" class="choice-container">
-    <img src="ginhatenatop.png" class="choice-img">
-    <img src="ginhatenatop.png" class="choice-img">
+    <img src="ginhatenatop.png" class="choice-img" />
+    <img src="ginhatenatop.png" class="choice-img" />
   </div>
 
   <div id="scratch-area">
-    <img id="hidden-img" src="" alt="当たり画像">
+    <img id="hidden-img" src="" alt="当たり画像" />
     <canvas id="scratch-canvas" width="300" height="400"></canvas>
   </div>
 
   <script>
+    // ===== URLパラメータ =====
+    const params = new URLSearchParams(location.search);
+    const TEST_MODE = params.get('test') === '1' || params.get('mode') === 'test';
+    const PRIZE_FORCE = (params.get('prize') || '').toLowerCase(); // okasi|kandrink|pet1|pet2|hazure
+
+    // ===== DOM参照 =====
     const message = document.getElementById('message');
     const choices = document.querySelectorAll('.choice-img');
     const scratchArea = document.getElementById('scratch-area');
     const hiddenImg = document.getElementById('hidden-img');
     const canvas = document.getElementById('scratch-canvas');
     const ctx = canvas.getContext('2d');
+
+    // ===== 状態 =====
     let isDrawing = false;
     let revealed = false;
 
-    // ✅ 一日一回制限
-    const today = new Date().toDateString();
-    const savedDate = localStorage.getItem('scratchDate');
+    // ===== 一日一回制限（テストモードは無効） =====
+    if (!TEST_MODE) {
+      const today = new Date().toDateString();
+      const savedDate = localStorage.getItem('scratchDate');
+      if (savedDate === today) {
+        document.body.innerHTML = `
+          <h1 class="main-title">🎉 削って楽しくスクラッチ 🎉</h1>
+          <p style="font-size:1.2em;">今日はすでにやったよ、また明日遊んでね</p>
+        `;
+      } else {
+        localStorage.setItem('scratchDate', today);
+      }
+    } else {
+      // テストバッジ & リセットボタン
+      const badge = document.createElement('div');
+      badge.className = 'test-badge';
+      badge.textContent = 'TEST MODE';
+      document.body.appendChild(badge);
 
-    if (savedDate === today) {
-      document.body.innerHTML = `
-        <h1 class="main-title">🎉 削って楽しくスクラッチ 🎉</h1>
-        <p style="font-size:1.2em;">今日はすでにやったよ、また明日遊んでね</p>
-      `;
+      const resetBtn = document.createElement('button');
+      resetBtn.className = 'reset-btn';
+      resetBtn.textContent = 'リセット';
+      resetBtn.onclick = () => location.reload();
+      document.body.appendChild(resetBtn);
     }
 
-    // 結果を決定して保存
+    // ===== 結果決定（テストでは固定も可能）=====
     const result = getScratchResult();
-    localStorage.setItem('scratchResult', result);
-    localStorage.setItem('scratchDate', today);
     hiddenImg.src = result;
+    if (!TEST_MODE) localStorage.setItem('scratchResult', result);
 
+    // ===== 選択 → スクラッチ画面へ =====
     choices.forEach(choice => {
       choice.addEventListener('click', () => {
         document.getElementById('choices').style.display = 'none';
         message.textContent = '削ってみてね';
 
+        // 100msディレイでラグ対策
         setTimeout(() => {
           scratchArea.style.display = 'block';
           const coverImg = new Image();
           coverImg.src = 'ginhatenatop.png';
-          coverImg.onload = () => {
-            ctx.drawImage(coverImg, 0, 0, canvas.width, canvas.height);
-          };
+          coverImg.onload = () => ctx.drawImage(coverImg, 0, 0, canvas.width, canvas.height);
         }, 100);
       });
     });
 
+    // ===== 結果ロジック =====
     function getScratchResult() {
+      if (TEST_MODE) {
+        // 強制指定があればそれを返す
+        if (PRIZE_FORCE === 'okasi')   return 'okasi.png';
+        if (PRIZE_FORCE === 'kandrink')return 'kandrink.png';
+        if (PRIZE_FORCE === 'pet1')    return 'petdrink1.png';
+        if (PRIZE_FORCE === 'pet2')    return 'petdrink2.png';
+        if (PRIZE_FORCE === 'hazure')  return 'hazure.png';
+      }
+      // 本来の確率（15%当たり）
       const rand = Math.floor(Math.random() * 100);
       if (rand < 2) return 'petdrink2.png';     // 2%
-      else if (rand < 4) return 'petdrink1.png'; // 2%
-      else if (rand < 7) return 'kandrink.png';  // 3%
-      else if (rand < 15) return 'okasi.png';    // 8%
-      else return 'hazure.png';                  // 85%
+      else if (rand < 4) return 'petdrink1.png';// 2%
+      else if (rand < 7) return 'kandrink.png'; // 3%
+      else if (rand < 15) return 'okasi.png';   // 8%
+      else return 'hazure.png';                 // 85%
     }
 
+    // ===== 入力座標 =====
     function getPosition(e) {
       const rect = canvas.getBoundingClientRect();
       const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
@@ -152,6 +128,7 @@
       return { x, y };
     }
 
+    // ===== 削る =====
     function scratch(x, y) {
       if (revealed) return;
       ctx.globalCompositeOperation = 'destination-out';
@@ -161,46 +138,31 @@
       checkReveal();
     }
 
+    // ===== 面積チェック：テスト時は5% / 本番30% =====
     function checkReveal() {
       const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const pixels = imgData.data;
       let transparentPixels = 0;
-      for (let i = 3; i < pixels.length; i += 4) {
-        if (pixels[i] === 0) transparentPixels++;
-      }
+      for (let i = 3; i < pixels.length; i += 4) if (pixels[i] === 0) transparentPixels++;
       const ratio = transparentPixels / (canvas.width * canvas.height);
-      if (ratio > 0.3 && !revealed) {
+      const threshold = TEST_MODE ? 0.05 : 0.30; // ←撮影しやすいように激甘
+      if (ratio > threshold && !revealed) {
         revealed = true;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         hiddenImg.classList.add('reveal-effect');
       }
     }
 
-    // PC用
-    canvas.addEventListener('mousedown', (e) => {
-      isDrawing = true;
-      scratch(...Object.values(getPosition(e)));
-    });
-    canvas.addEventListener('mousemove', (e) => {
-      if (!isDrawing) return;
-      scratch(...Object.values(getPosition(e)));
-    });
+    // ===== イベント登録 =====
+    // PC
+    canvas.addEventListener('mousedown', e => { isDrawing = true; scratch(...Object.values(getPosition(e))); });
+    canvas.addEventListener('mousemove', e => { if (isDrawing) scratch(...Object.values(getPosition(e))); });
     canvas.addEventListener('mouseup', () => isDrawing = false);
     canvas.addEventListener('mouseleave', () => isDrawing = false);
-
-    // スマホ用
-    canvas.addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      isDrawing = true;
-      scratch(...Object.values(getPosition(e)));
-    }, { passive: false });
-    canvas.addEventListener('touchmove', (e) => {
-      e.preventDefault();
-      if (!isDrawing) return;
-      scratch(...Object.values(getPosition(e)));
-    }, { passive: false });
-    canvas.addEventListener('touchend', () => isDrawing = false);
+    // スマホ
+    canvas.addEventListener('touchstart', e => { e.preventDefault(); isDrawing = true; scratch(...Object.values(getPosition(e))); }, { passive:false });
+    canvas.addEventListener('touchmove',  e => { e.preventDefault(); if (isDrawing) scratch(...Object.values(getPosition(e))); }, { passive:false });
+    canvas.addEventListener('touchend',   () => { isDrawing = false; });
   </script>
-
 </body>
 </html>
